@@ -1,7 +1,10 @@
 import 'package:calendar_project/collection/schedule_schema.dart';
+import 'package:calendar_project/const/const.dart';
 import 'package:calendar_project/db/isar_database.dart';
 import 'package:calendar_project/home/bloc/date_bloc.dart';
-import 'package:calendar_project/home/model/schedule_model.dart';
+import 'package:calendar_project/home/components/custom_scroll_list.dart';
+import 'package:calendar_project/home/components/schedule_button.dart';
+import 'package:dev/dev.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -19,10 +22,13 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final _bloc = DateBloc();
+
+  // 더미데이터 생성
   void insertDummySchedule() async {
     final database = IsarDatabase();
     final isar = database.isar;
-    final dummylist = List.generate(10, (index) {
+    final dummylist = List.generate(5, (index) {
       return Schedule()
         ..date = DateFormat('yyyy-MM-dd').format(DateTime.now())
         ..endTime = DateTime(2024, 1, 1, 10, 0)
@@ -33,23 +39,22 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     isar.writeTxn(() async {
+      await isar.schedules.clear();
       await isar.schedules.putAll(dummylist);
     });
   }
 
   @override
   void initState() {
+    _bloc.getScheduleList(DateTime.now());
     insertDummySchedule();
-    // TODO: implement initState
     super.initState();
   }
 
-  final _bloc = DateBloc();
-
   // 선택된 날짜
-  DateTime _isSelectedDay = DateTime.now().add(Duration(days: 1));
+  DateTime _isSelectedDay = DateTime.now();
   // 현재 보여지는 달을 결정
-  DateTime _focusday = DateTime.utc(2024, 06, 01);
+  DateTime _focusday = DateTime.now();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,7 +64,7 @@ class _HomeScreenState extends State<HomeScreen> {
               stream: _bloc.dateStream,
               builder: (context, AsyncSnapshot<DateTime> snapshot) {
                 final selectedDate = snapshot.data;
-                print(selectedDate);
+                print("stream builder $selectedDate");
                 return Container(
                   color: Colors.white,
                   child: TableCalendar(
@@ -88,13 +93,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       return isSameDay(_isSelectedDay, day);
                     },
                     onDaySelected: (selectedDay, focusedDay) {
-                      // print("선택 날짜 $selectedDay");
-                      // print("강조 날짜 $focusedDay");
                       _bloc.selectDate(selectedDay);
                       _bloc.getScheduleList(selectedDay);
+                      // 선택날짜와 보여지는 달 저장
                       setState(() {
                         _isSelectedDay = selectedDay;
-                        // _focusday = focusedDay;
+                        _focusday = focusedDay;
                       });
                     },
                   ),
@@ -111,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
 
                   final list = snapshot.data!;
-                  print(list);
+
                   return ListView.separated(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 10),
@@ -130,13 +134,129 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
+          final ValueNotifier<ScheduleType> selectedType =
+              ValueNotifier(ScheduleType.work);
           showModalBottomSheet(
               context: context,
               builder: (context) {
-                return Container();
+                return ScheduleForm(selectedType: selectedType);
               });
         },
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class ScheduleForm extends StatelessWidget {
+  const ScheduleForm({
+    super.key,
+    required this.selectedType,
+  });
+
+  final ValueNotifier<ScheduleType> selectedType;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = MediaQuery.sizeOf(context).height;
+    return Container(
+      height: height * 0.5,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text("취소")),
+                TextButton(onPressed: () {}, child: Text("저장")),
+              ],
+            ),
+          ),
+          TextField(
+            decoration: InputDecoration(
+              prefixIcon: Icon(Icons.title_outlined),
+              hintText: "제목 추가",
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [Icon(Icons.watch_later_outlined), Text("오후 1: 20")],
+            ),
+          ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Positioned(
+                left: 10,
+                right: 10,
+                child: Container(
+                    height: 30,
+                    decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10))),
+              ),
+              SizedBox(
+                height: 80,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 50,
+                      child: CustomWheelList(
+                        data: AMPM,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 50,
+                      child: CustomWheelList(
+                        data: HOUR,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 50,
+                      child: CustomWheelList(
+                        data: MiNUTE,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          TextField(
+            decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.description_outlined),
+                hintText: "부가 설명"),
+          ),
+          const SizedBox(
+            height: 15,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 10),
+            child: Row(
+              children: ScheduleType.values
+                  .map((e) => Row(
+                        children: [
+                          ScheduleButton(
+                            type: e,
+                            selectedType: selectedType,
+                          ),
+                          SizedBox(
+                            width: 10,
+                          )
+                        ],
+                      ))
+                  .toList(),
+            ),
+          )
+        ],
       ),
     );
   }

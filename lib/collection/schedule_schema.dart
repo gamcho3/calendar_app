@@ -1,6 +1,4 @@
 import 'dart:ui';
-
-import 'package:calendar_project/home/model/schedule_model.dart';
 import 'package:isar/isar.dart';
 
 part 'schedule_schema.g.dart';

@@ -6,14 +6,39 @@ import 'package:path_provider/path_provider.dart';
 
 abstract class ScheduleRepository {
   getScheduleList({required DateTime date});
-  createSchedule();
+  createSchedule(
+      {required DateTime date,
+      required DateTime startTime,
+      required DateTime endTime,
+      required String title,
+      String? subTitle,
+      required ScheduleType type});
   updateSchedule();
   deleteSchedule();
 }
 
 class IsarScheduleRepositoryImpl implements ScheduleRepository {
   @override
-  createSchedule() {}
+  createSchedule(
+      {required DateTime date,
+      required DateTime startTime,
+      required DateTime endTime,
+      required String title,
+      String? subTitle,
+      required ScheduleType type}) {
+    final database = IsarDatabase();
+    final isar = database.isar;
+    final schedule = Schedule()
+      ..date = DateFormat('yyyy-MM-dd').format(date)
+      ..endTime = endTime
+      ..startTime = startTime
+      ..title = title
+      ..subTitle = subTitle
+      ..type = type;
+    isar.writeTxn(() async {
+      await isar.schedules.put(schedule);
+    });
+  }
 
   @override
   deleteSchedule() {

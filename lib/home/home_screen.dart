@@ -4,10 +4,14 @@ import 'package:calendar_project/db/isar_database.dart';
 import 'package:calendar_project/home/bloc/date_bloc.dart';
 import 'package:calendar_project/home/components/custom_scroll_list.dart';
 import 'package:calendar_project/home/components/schedule_button.dart';
+import 'package:calendar_project/home/components/schedule_container.dart';
+import 'package:calendar_project/home/components/schedule_form.dart';
+import 'package:calendar_project/home/model/time_model.dart';
 import 'package:dev/dev.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:isar/isar.dart';
@@ -57,6 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
   DateTime _focusday = DateTime.now();
   @override
   Widget build(BuildContext context) {
+    final ValueNotifier<ScheduleType> selectedType =
+        ValueNotifier(ScheduleType.work);
     return Scaffold(
       body: Column(
         children: [
@@ -134,166 +140,14 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          final ValueNotifier<ScheduleType> selectedType =
-              ValueNotifier(ScheduleType.work);
           showModalBottomSheet(
               context: context,
+              isScrollControlled: true,
               builder: (context) {
                 return ScheduleForm(selectedType: selectedType);
               });
         },
         child: const Icon(Icons.add),
-      ),
-    );
-  }
-}
-
-class ScheduleForm extends StatelessWidget {
-  const ScheduleForm({
-    super.key,
-    required this.selectedType,
-  });
-
-  final ValueNotifier<ScheduleType> selectedType;
-
-  @override
-  Widget build(BuildContext context) {
-    final height = MediaQuery.sizeOf(context).height;
-    return Container(
-      height: height * 0.5,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    child: Text("취소")),
-                TextButton(onPressed: () {}, child: Text("저장")),
-              ],
-            ),
-          ),
-          TextField(
-            decoration: InputDecoration(
-              prefixIcon: Icon(Icons.title_outlined),
-              hintText: "제목 추가",
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [Icon(Icons.watch_later_outlined), Text("오후 1: 20")],
-            ),
-          ),
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              Positioned(
-                left: 10,
-                right: 10,
-                child: Container(
-                    height: 30,
-                    decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10))),
-              ),
-              SizedBox(
-                height: 80,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 50,
-                      child: CustomWheelList(
-                        data: AMPM,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 50,
-                      child: CustomWheelList(
-                        data: HOUR,
-                      ),
-                    ),
-                    SizedBox(
-                      width: 50,
-                      child: CustomWheelList(
-                        data: MiNUTE,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          TextField(
-            decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.description_outlined),
-                hintText: "부가 설명"),
-          ),
-          const SizedBox(
-            height: 15,
-          ),
-          Padding(
-            padding: const EdgeInsets.only(left: 10),
-            child: Row(
-              children: ScheduleType.values
-                  .map((e) => Row(
-                        children: [
-                          ScheduleButton(
-                            type: e,
-                            selectedType: selectedType,
-                          ),
-                          SizedBox(
-                            width: 10,
-                          )
-                        ],
-                      ))
-                  .toList(),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-}
-
-class ScheduleContainer extends StatelessWidget {
-  final int index;
-  final Schedule schedule;
-
-  const ScheduleContainer({
-    super.key,
-    required this.index,
-    required this.schedule,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-          color: index.isEven ? Colors.teal.withOpacity(0.1) : Colors.white,
-          borderRadius: BorderRadius.circular(10)),
-      child: ListTile(
-        tileColor: Colors.white,
-        // shape: RoundedRectangleBorder(
-        //     side: const BorderSide(color: Colors.teal),
-        //     borderRadius: BorderRadius.circular(10)),
-        leading: CircleAvatar(
-          child:
-              Text("${schedule.startTime.hour}:${schedule.startTime.minute}"),
-        ),
-        title: Text(schedule.title),
-        subtitle: Text(schedule.subTitle ?? ""),
-        trailing: Container(
-          width: 20,
-          decoration:
-              BoxDecoration(color: schedule.type.color, shape: BoxShape.circle),
-        ),
       ),
     );
   }

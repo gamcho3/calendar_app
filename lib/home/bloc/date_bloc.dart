@@ -25,6 +25,23 @@ class DateBloc {
     _scheduleListController.sink.add(data);
   }
 
+  void createSchedule(
+      {required DateTime date,
+      required DateTime startTime,
+      required DateTime endTime,
+      required String title,
+      String? subTitle,
+      required ScheduleType type}) {
+    repository.createSchedule(
+        date: date,
+        startTime: startTime,
+        endTime: endTime,
+        title: title,
+        subTitle: subTitle,
+        type: type);
+    getScheduleList(date);
+  }
+
   void selectDate(date) {
     _dateController.sink.add(date);
   }
